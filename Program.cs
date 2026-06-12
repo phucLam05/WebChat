@@ -1,3 +1,9 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using WebChat.Data;
+using WebChat.Hubs;
+using WebChat.Models;
+
 namespace WebChat
 {
     public class Program
@@ -7,7 +13,18 @@ namespace WebChat
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(connectionString));
+
+            builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
+                .AddEntityFrameworkStores<ApplicationDbContext>();
+
             builder.Services.AddRazorPages();
+            builder.Services.AddSignalR();
+            builder.Services.AddControllers();
 
             var app = builder.Build();
 
@@ -23,9 +40,12 @@ namespace WebChat
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapStaticAssets();
+            app.MapControllers();
+            app.MapHub<ChatHub>("/chatHub");
             app.MapRazorPages()
                .WithStaticAssets();
 

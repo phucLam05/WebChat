@@ -1,0 +1,140 @@
+@page
+@model WebChat.Pages.ChatModel
+@{
+    ViewData["Title"] = "Chat";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+}
+
+<div class="chat-container row g-0">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show position-absolute top-0 start-50 translate-middle-x mt-2 z-3" role="alert" style="width: auto;">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    <!-- Sidebar -->
+    <div class="col-md-4 col-lg-3 chat-sidebar border-end">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="m-0">Chats</h5>
+            <button class="btn btn-sm btn-outline-primary" id="btnNewChat" data-bs-toggle="modal" data-bs-target="#newChatModal">+</button>
+        </div>
+        <div class="chat-list overflow-auto">
+            @if (Model.Chats != null)
+            {
+                foreach (var chat in Model.Chats)
+                {
+                    <a href="/Chat?chatId=@chat.Id" class="list-group-item list-group-item-action @(Model.ActiveChat?.Id == chat.Id ? "active" : "") p-3">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">@(chat.Name ?? "Chat " + chat.Id)</h6>
+                        </div>
+                    </a>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="col-md-8 col-lg-9 chat-main d-flex flex-column">
+        @if (Model.ActiveChat != null)
+        {
+            <div class="chat-header p-3 border-bottom shadow-sm">
+                <h5 class="m-0">@(Model.ActiveChat.Name ?? "Chat " + Model.ActiveChat.Id)</h5>
+            </div>
+
+            <div class="chat-messages flex-grow-1 p-3 overflow-auto" id="messagesList">
+                @if (Model.ActiveChat.Messages != null)
+                {
+                    foreach (var message in Model.ActiveChat.Messages.OrderBy(m => m.CreatedAt))
+                    {
+                        var isCurrentUser = message.SenderId == Model.CurrentUser.Id;
+                        <div class="message-wrapper d-flex mb-3 @(isCurrentUser ? "justify-content-end" : "")">
+                            <div class="message-box @(isCurrentUser ? "bg-primary text-white right-msg" : "bg-light left-msg") p-2 rounded">
+                                @if (!isCurrentUser)
+                                {
+                                    <div class="sender-name small fw-bold text-muted mb-1">@message.Sender.UserName</div>
+                                }
+                                
+                                @if (message.Type == WebChat.Models.MessageType.Text || message.Type == WebChat.Models.MessageType.Icon)
+                                {
+                                    <span>@message.Content</span>
+                                }
+                                else if (message.Type == WebChat.Models.MessageType.Image)
+                                {
+                                    <img src="@message.FileUrl" class="img-fluid rounded chat-img" alt="image" />
+                                }
+                                else if (message.Type == WebChat.Models.MessageType.File)
+                                {
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-file-earmark me-2"></i>
+                                        <a href="@message.FileUrl" target="_blank" class="@(isCurrentUser ? "text-white" : "")" download="@message.FileName">@message.FileName</a>
+                                    </div>
+                                }
+                                <div class="message-time small @(isCurrentUser ? "text-light" : "text-muted") text-end mt-1">@message.CreatedAt.ToLocalTime().ToString("HH:mm")</div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="chat-input-area p-3 border-top">
+                <div id="uploadProgressContainer" class="d-none mb-2">
+                    <div class="progress" style="height: 5px;">
+                        <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <button class="btn btn-outline-secondary" type="button" id="btnAttachFile" title="Attach File">📎</button>
+                    <button class="btn btn-outline-secondary" type="button" id="btnAttachImage" title="Attach Image">🖼️</button>
+                    <button class="btn btn-outline-secondary" type="button" id="btnEmoji" title="Emoji">😊</button>
+                    <input type="text" id="messageInput" class="form-control" placeholder="Type a message..." />
+                    <button class="btn btn-primary" type="button" id="btnSend">Send</button>
+                </div>
+                <!-- Hidden inputs for file/image -->
+                <input type="file" id="fileInput" class="d-none" />
+                <input type="file" id="imageInput" accept="image/*" class="d-none" />
+            </div>
+            
+            <input type="hidden" id="currentChatId" value="@Model.ActiveChat.Id" />
+            <input type="hidden" id="currentUserId" value="@Model.CurrentUser.Id" />
+        }
+        else
+        {
+            <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                <h4>Select a chat to start messaging</h4>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- New Chat Modal -->
+<div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="CreateChat">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newChatModalLabel">Tạo Chat Mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="targetEmail" class="form-label">Email người cần chat:</label>
+                        <input type="email" class="form-control" id="targetEmail" name="TargetEmail" required placeholder="name@example.com">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Tạo / Mở Chat</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/chat.js" asp-append-version="true"></script>
+}

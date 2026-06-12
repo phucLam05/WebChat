@@ -1,0 +1,46 @@
+.chat-container {
+    height: calc(100vh - 60px); /* Adjust based on navbar height */
+}
+
+.chat-sidebar {
+    height: 100%;
+    background-color: #f8f9fa;
+}
+
+.chat-main {
+    height: 100%;
+}
+
+.chat-messages {
+    background-color: #e5ddd5; /* Zalo-like background */
+}
+
+.message-wrapper {
+    width: 100%;
+}
+
+.message-box {
+    max-width: 70%;
+    word-wrap: break-word;
+}
+
+.right-msg {
+    border-bottom-right-radius: 0 !important;
+}
+
+.left-msg {
+    border-bottom-left-radius: 0 !important;
+    background-color: #ffffff !important;
+    border: 1px solid #ddd;
+}
+
+.chat-img {
+    max-width: 250px;
+    max-height: 250px;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.message-time {
+    font-size: 0.75rem;
+}
