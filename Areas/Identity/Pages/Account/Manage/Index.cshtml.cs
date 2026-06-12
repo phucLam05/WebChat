@@ -2,7 +2,9 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using WebChat.Models;
+using WebChat.Hubs;
 
 namespace WebChat.Areas.Identity.Pages.Account.Manage
 {
@@ -10,13 +12,16 @@ namespace WebChat.Areas.Identity.Pages.Account.Manage
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IHubContext<ChatHub> _hubContext;
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            SignInManager<ApplicationUser> signInManager,
+            IHubContext<ChatHub> hubContext)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _hubContext = hubContext;
         }
 
         public string Username { get; set; } = string.Empty;
@@ -99,6 +104,9 @@ namespace WebChat.Areas.Identity.Pages.Account.Manage
                     StatusMessage = "Lỗi: Không thể cập nhật họ và tên.";
                     return RedirectToPage();
                 }
+
+                var displayName = !string.IsNullOrWhiteSpace(user.FullName) ? user.FullName : user.UserName ?? "Ai đó";
+                await _hubContext.Clients.All.SendAsync("UserProfileUpdated", user.Id, displayName);
             }
 
             await _signInManager.RefreshSignInAsync(user);

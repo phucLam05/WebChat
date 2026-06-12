@@ -25,6 +25,7 @@ namespace WebChat.Models
         Text,
         Image,
         File,
-        Icon
+        Icon,
+        Video
     }
 }

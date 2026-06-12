@@ -26,6 +26,16 @@ namespace WebChat.Hubs
             _context = context;
         }
 
+        private string? GetCurrentUserId()
+        {
+            return Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        private async Task<bool> UserCanAccessChatAsync(string userId, int chatId)
+        {
+            return await _context.ChatUsers.AnyAsync(cu => cu.ChatId == chatId && cu.UserId == userId);
+        }
+
         public override async Task OnConnectedAsync()
         {
             var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -79,29 +89,51 @@ namespace WebChat.Hubs
 
         public async Task JoinChat(int chatId)
         {
+            var userId = GetCurrentUserId();
+            if (userId == null || !await UserCanAccessChatAsync(userId, chatId))
+            {
+                throw new HubException("Bạn không có quyền truy cập cuộc trò chuyện này.");
+            }
+
             await Groups.AddToGroupAsync(Context.ConnectionId, chatId.ToString());
         }
 
         public async Task LeaveChat(int chatId)
         {
+            var userId = GetCurrentUserId();
+            if (userId == null || !await UserCanAccessChatAsync(userId, chatId))
+            {
+                return;
+            }
+
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, chatId.ToString());
         }
 
         public async Task SendMessage(int chatId, string content, int type, string? fileUrl = null, string? fileName = null, long? fileSize = null)
         {
-            var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (userId == null) return;
+
+            if (!await UserCanAccessChatAsync(userId, chatId))
+            {
+                throw new HubException("Bạn không có quyền gửi tin nhắn vào cuộc trò chuyện này.");
+            }
+
+            var normalizedContent = content?.Trim() ?? string.Empty;
+            var hasAttachment = !string.IsNullOrWhiteSpace(fileUrl);
+            if (string.IsNullOrWhiteSpace(normalizedContent) && !hasAttachment)
+            {
+                return;
+            }
 
             var user = await _context.Users.FindAsync(userId);
             var senderDisplayName = (!string.IsNullOrWhiteSpace(user?.FullName) ? user.FullName : user?.UserName) ?? "Ai đó";
-
-            // Optional: Validate if user belongs to the chat
 
             var message = new Message
             {
                 ChatId = chatId,
                 SenderId = userId,
-                Content = content,
+                Content = normalizedContent,
                 Type = (MessageType)type,
                 FileUrl = fileUrl,
                 FileName = fileName,
@@ -145,8 +177,13 @@ namespace WebChat.Hubs
 
         public async Task MarkChatAsRead(int chatId)
         {
-            var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = GetCurrentUserId();
             if (userId == null) return;
+
+            if (!await UserCanAccessChatAsync(userId, chatId))
+            {
+                return;
+            }
 
             var chatUser = await _context.ChatUsers
                 .FirstOrDefaultAsync(cu => cu.ChatId == chatId && cu.UserId == userId);

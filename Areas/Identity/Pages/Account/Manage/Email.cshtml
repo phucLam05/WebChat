@@ -1,0 +1,37 @@
+@page
+@model EmailModel
+@{
+    ViewData["Title"] = "Email";
+}
+
+<h3>Đổi email</h3>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    var isError = Model.StatusMessage.StartsWith("Lỗi");
+    <div class="alert @(isError ? "alert-danger" : "alert-success") alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<form id="email-form" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+    <div class="form-floating mb-3">
+        <input asp-for="CurrentEmail" class="form-control" disabled />
+        <label asp-for="CurrentEmail">Email hiện tại</label>
+    </div>
+
+    <div class="form-floating mb-3">
+        <input asp-for="Input.NewEmail" class="form-control" autocomplete="email" placeholder="name@example.com" />
+        <label asp-for="Input.NewEmail">Email mới</label>
+        <span asp-validation-for="Input.NewEmail" class="text-danger"></span>
+    </div>
+
+    <button id="change-email-button" type="submit" class="w-100 btn btn-lg btn-primary">Lưu email mới</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

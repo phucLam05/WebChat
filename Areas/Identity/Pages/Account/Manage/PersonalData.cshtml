@@ -1,0 +1,52 @@
+@page
+@model PersonalDataModel
+@{
+    ViewData["Title"] = "Personal Data";
+}
+
+<style>
+    .personal-data-actions {
+        display: flex;
+        gap: 12px;
+        align-items: stretch;
+        flex-wrap: wrap;
+        max-width: 360px;
+    }
+
+    .personal-data-actions > * {
+        flex: 1 1 0;
+    }
+
+    .personal-data-actions form {
+        display: flex;
+    }
+
+    .personal-data-actions .btn {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .personal-data-actions .btn {
+        min-height: 50px;
+        font-weight: 700;
+    }
+</style>
+
+<h3>@ViewData["Title"]</h3>
+
+<div class="row">
+    <div class="col-md-8">
+        <p>Your account contains personal data that you have given us. This page allows you to download or delete that data.</p>
+        <p>
+            <strong>Deleting this data will permanently remove your account, and this cannot be recovered.</strong>
+        </p>
+        <div class="personal-data-actions">
+            <form id="download-data" asp-page="DownloadPersonalData" method="post">
+                <button class="btn btn-primary" type="submit">Download</button>
+            </form>
+            <a id="delete" asp-page="DeletePersonalData" class="btn btn-danger">Delete</a>
+        </div>
+    </div>
+</div>

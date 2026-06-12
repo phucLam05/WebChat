@@ -27,7 +27,16 @@ namespace WebChat.Pages
         public Chat? ActiveChat { get; set; }
 
         [BindProperty]
+        public string ChatMode { get; set; } = "private";
+
+        [BindProperty]
         public string? TargetEmail { get; set; }
+
+        [BindProperty]
+        public string? GroupName { get; set; }
+
+        [BindProperty]
+        public string? GroupMemberEmails { get; set; }
 
         public async Task<IActionResult> OnGetAsync(int? chatId)
         {
@@ -52,7 +61,7 @@ namespace WebChat.Pages
                 ActiveChat = await _context.Chats
                     .Include(c => c.Messages).ThenInclude(m => m.Sender)
                     .Include(c => c.ChatUsers).ThenInclude(cu => cu.User)
-                    .FirstOrDefaultAsync(c => c.Id == chatId.Value);
+                    .FirstOrDefaultAsync(c => c.Id == chatId.Value && c.ChatUsers.Any(cu => cu.UserId == userId));
 
                 if (ActiveChat != null)
                 {
@@ -63,6 +72,11 @@ namespace WebChat.Pages
                         await _context.SaveChangesAsync();
                     }
                 }
+                else
+                {
+                    TempData["ErrorMessage"] = "Không tìm thấy cuộc trò chuyện hoặc bạn không có quyền truy cập.";
+                    return RedirectToPage("/Chat");
+                }
             }
 
             return Page();
@@ -72,6 +86,11 @@ namespace WebChat.Pages
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null) return RedirectToPage("/Index");
+
+            if (string.Equals(ChatMode, "group", StringComparison.OrdinalIgnoreCase))
+            {
+                return await CreateGroupChatAsync(userId);
+            }
 
             if (string.IsNullOrWhiteSpace(TargetEmail))
             {
@@ -109,7 +128,7 @@ namespace WebChat.Pages
             var newChat = new Chat
             {
                 Type = ChatType.Private,
-                Name = targetUser.UserName // Use the other person's name as chat name for simplicity
+                Name = !string.IsNullOrWhiteSpace(targetUser.FullName) ? targetUser.FullName : targetUser.UserName
             };
 
             _context.Chats.Add(newChat);
@@ -122,6 +141,78 @@ namespace WebChat.Pages
             await _hubContext.Clients.User(targetUser.Id).SendAsync("NewChatCreated", newChat.Id, User.Identity?.Name);
 
             return RedirectToPage("/Chat", new { chatId = newChat.Id });
+        }
+
+        private async Task<IActionResult> CreateGroupChatAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(GroupName))
+            {
+                TempData["ErrorMessage"] = "Vui lòng nhập tên nhóm.";
+                return RedirectToPage("/Chat");
+            }
+
+            var normalizedEmails = (GroupMemberEmails ?? string.Empty)
+                .Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (normalizedEmails.Count == 0)
+            {
+                TempData["ErrorMessage"] = "Vui lòng nhập ít nhất một email thành viên.";
+                return RedirectToPage("/Chat");
+            }
+
+            var users = await _context.Users
+                .Where(u => normalizedEmails.Contains(u.Email!))
+                .ToListAsync();
+
+            var foundEmails = users
+                .Where(u => !string.IsNullOrWhiteSpace(u.Email))
+                .Select(u => u.Email!)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var missingEmails = normalizedEmails
+                .Where(email => !foundEmails.Contains(email))
+                .ToList();
+
+            if (missingEmails.Count > 0)
+            {
+                TempData["ErrorMessage"] = $"Không tìm thấy người dùng: {string.Join(", ", missingEmails)}.";
+                return RedirectToPage("/Chat");
+            }
+
+            users = users.Where(u => u.Id != userId).ToList();
+
+            if (users.Count == 0)
+            {
+                TempData["ErrorMessage"] = "Nhóm cần ít nhất một thành viên khác ngoài bạn.";
+                return RedirectToPage("/Chat");
+            }
+
+            var groupChat = new Chat
+            {
+                Type = ChatType.Group,
+                Name = GroupName.Trim()
+            };
+
+            _context.Chats.Add(groupChat);
+            await _context.SaveChangesAsync();
+
+            _context.ChatUsers.Add(new ChatUser { ChatId = groupChat.Id, UserId = userId, Role = UserRole.Admin });
+            foreach (var member in users)
+            {
+                _context.ChatUsers.Add(new ChatUser { ChatId = groupChat.Id, UserId = member.Id, Role = UserRole.Member });
+            }
+
+            await _context.SaveChangesAsync();
+
+            var participantIds = users.Select(u => u.Id).ToList();
+            if (participantIds.Count > 0)
+            {
+                await _hubContext.Clients.Users(participantIds).SendAsync("NewChatCreated", groupChat.Id, groupChat.Name);
+            }
+
+            return RedirectToPage("/Chat", new { chatId = groupChat.Id });
         }
     }
 }

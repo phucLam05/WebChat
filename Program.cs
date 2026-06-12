@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.Features;
 using WebChat.Data;
 using WebChat.Hubs;
 using WebChat.Models;
@@ -21,6 +22,18 @@ namespace WebChat
 
             builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
                 .AddEntityFrameworkStores<ApplicationDbContext>();
+
+            const long maxUploadSize = 3L * 1024L * 1024L * 1024L;
+
+            builder.Services.Configure<FormOptions>(options =>
+            {
+                options.MultipartBodyLengthLimit = maxUploadSize;
+            });
+
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.Limits.MaxRequestBodySize = maxUploadSize;
+            });
 
             builder.Services.AddRazorPages();
             builder.Services.AddSignalR();

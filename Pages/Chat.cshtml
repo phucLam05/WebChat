@@ -1,4 +1,4 @@
-@page
+@page "{chatId:int?}"
 @model WebChat.Pages.ChatModel
 @{
     ViewData["Title"] = "Chat - WebChat";
@@ -45,6 +45,8 @@
         {
             case WebChat.Models.MessageType.Image:
                 return $"{senderName}: [Hình ảnh]";
+            case WebChat.Models.MessageType.Video:
+                return $"{senderName}: [Video]";
             case WebChat.Models.MessageType.File:
                 return $"{senderName}: [Tệp tin: {lastMessage.FileName}]";
             default:
@@ -65,6 +67,25 @@
             return localTime.ToString("HH:mm");
         }
         return localTime.ToString("dd/MM");
+    }
+
+    bool IsEmojiOnly(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return false;
+        foreach (var ch in content.Trim())
+        {
+            if (!char.IsWhiteSpace(ch) && char.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.OtherSymbol)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    string BuildMediaUrl(string? fileUrl, int messageId)
+    {
+        if (string.IsNullOrWhiteSpace(fileUrl)) return "";
+        return $"{fileUrl}?v={messageId}&sv={WebChat.Infrastructure.AppRuntime.InstanceToken}";
     }
 }
 
@@ -119,7 +140,7 @@
                     var unreadCount = chat.Messages?.Count(m => m.SenderId != Model.CurrentUser.Id && m.CreatedAt > lastReadAt) ?? 0;
                     var hasUnread = unreadCount > 0;
                     
-                    <a href="/Chat?chatId=@chat.Id" class="chat-list-item @(Model.ActiveChat?.Id == chat.Id ? "active" : "") @(hasUnread ? "unread" : "")" data-chat-id="@chat.Id">
+                    <a asp-page="/Chat" asp-route-chatId="@chat.Id" class="chat-list-item @(Model.ActiveChat?.Id == chat.Id ? "active" : "") @(hasUnread ? "unread" : "")" data-chat-id="@chat.Id">
                         <div class="avatar-circle position-relative">
                             @GetChatInitials(chat, Model.CurrentUser.Id)
                             @if (hasUnread)
@@ -129,10 +150,22 @@
                         </div>
                         <div class="chat-list-item-content hidden-mobile">
                             <div class="d-flex justify-content-between align-items-center mb-0.5">
-                                <h6 class="m-0 text-truncate chat-name-header">@chatName</h6>
+                                <h6 class="m-0 text-truncate chat-name-header"
+                                    data-chat-name-for-chat-id="@chat.Id"
+                                    data-private-chat-user-id="@(chat.Type == WebChat.Models.ChatType.Private ? otherUser?.Id : null)">
+                                    @chatName
+                                </h6>
                                 <span class="chat-item-time text-muted" id="sidebar-time-@chat.Id">@GetLastMessageTime(chat)</span>
                             </div>
-                            <div class="chat-item-last-msg text-truncate" id="sidebar-msg-@chat.Id">
+                            @{
+                                var lastMessage = chat.Messages?.OrderByDescending(m => m.CreatedAt).FirstOrDefault();
+                            }
+                            <div class="chat-item-last-msg text-truncate"
+                                 id="sidebar-msg-@chat.Id"
+                                 data-last-message-sender-id="@lastMessage?.SenderId"
+                                 data-last-message-type="@((int?)(lastMessage?.Type))"
+                                 data-last-message-content="@lastMessage?.Content"
+                                 data-last-message-file-name="@lastMessage?.FileName">
                                 @GetLastMessageText(chat, Model.CurrentUser.Id)
                             </div>
                         </div>
@@ -150,11 +183,15 @@
 
         <div class="sidebar-footer">
             <div class="sidebar-profile d-flex align-items-center gap-3 mb-2 w-100">
-                <div class="avatar-circle-sm" title="@(!string.IsNullOrWhiteSpace(Model.CurrentUser.FullName) ? Model.CurrentUser.FullName : Model.CurrentUser.UserName) (@Model.CurrentUser.Email)">
+                <div class="avatar-circle-sm"
+                     title="@(!string.IsNullOrWhiteSpace(Model.CurrentUser.FullName) ? Model.CurrentUser.FullName : Model.CurrentUser.UserName) (@Model.CurrentUser.Email)"
+                     data-user-avatar-id="@Model.CurrentUser.Id">
                     @GetInitials(!string.IsNullOrWhiteSpace(Model.CurrentUser.FullName) ? Model.CurrentUser.FullName : Model.CurrentUser.UserName)
                 </div>
                 <div class="profile-info text-truncate hidden-mobile flex-grow-1">
-                    <h6 class="m-0 font-weight-bold text-truncate" style="font-size: 0.88rem; color: var(--on-surface);">
+                    <h6 class="m-0 font-weight-bold text-truncate"
+                        style="font-size: 0.88rem; color: var(--on-surface);"
+                        data-user-name-id="@Model.CurrentUser.Id">
                         @(!string.IsNullOrWhiteSpace(Model.CurrentUser.FullName) ? Model.CurrentUser.FullName : Model.CurrentUser.UserName)
                     </h6>
                     <small class="text-truncate d-block" style="font-size: 0.75rem; color: var(--on-surface); opacity: 0.75;">
@@ -176,16 +213,23 @@
     </div>
 
     <!-- Main Chat Area -->
-    <div class="chat-main">
+    <div class="chat-main-shell @(Model.ActiveChat?.Type == WebChat.Models.ChatType.Group ? "group-chat-open" : "")">
+        <div class="chat-main">
         @if (Model.ActiveChat != null)
         {
             <div class="chat-header">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="avatar-circle-sm">
+                    <div class="avatar-circle-sm @(Model.ActiveChat.Type == WebChat.Models.ChatType.Group ? "group-chat-avatar" : "")"
+                         data-chat-header-avatar
+                         data-private-chat-user-id="@(Model.ActiveChat.Type == WebChat.Models.ChatType.Private ? Model.ActiveChat.ChatUsers.FirstOrDefault(cu => cu.UserId != Model.CurrentUser.Id)?.User?.Id : null)">
                         @GetChatInitials(Model.ActiveChat, Model.CurrentUser.Id)
                     </div>
                     <div>
-                        <h5 class="m-0 font-weight-bold text-truncate chat-header-title">@GetChatName(Model.ActiveChat, Model.CurrentUser.Id)</h5>
+                        <h5 class="m-0 font-weight-bold text-truncate chat-header-title"
+                            data-chat-header-name
+                            data-private-chat-user-id="@(Model.ActiveChat.Type == WebChat.Models.ChatType.Private ? Model.ActiveChat.ChatUsers.FirstOrDefault(cu => cu.UserId != Model.CurrentUser.Id)?.User?.Id : null)">
+                            @GetChatName(Model.ActiveChat, Model.CurrentUser.Id)
+                        </h5>
                         <div class="d-flex align-items-center gap-1.5 mt-0.5">
                             @if (Model.ActiveChat.Type == WebChat.Models.ChatType.Private)
                             {
@@ -218,15 +262,20 @@
                             @if (!isCurrentUser)
                             {
                                 var senderDisplayName = !string.IsNullOrWhiteSpace(message.Sender.FullName) ? message.Sender.FullName : message.Sender.UserName;
-                                <div class="avatar-circle-sm mb-1 align-self-end" title="@senderDisplayName">
+                                <div class="avatar-circle-sm mb-1 align-self-end"
+                                     title="@senderDisplayName"
+                                     data-user-avatar-id="@message.SenderId">
                                     @GetInitials(senderDisplayName)
                                 </div>
                             }
-                            <div class="message-box @(isCurrentUser ? "right-msg" : "left-msg")">
+                            @{
+                                var messageBoxClasses = $"{(isCurrentUser ? "right-msg" : "left-msg")} {(message.Type == WebChat.Models.MessageType.Image || message.Type == WebChat.Models.MessageType.Video ? "media-message" : "")} {(message.Type == WebChat.Models.MessageType.Icon || IsEmojiOnly(message.Content) ? "emoji-message" : "")}";
+                            }
+                            <div class="message-box @messageBoxClasses">
                                 @if (!isCurrentUser)
                                 {
                                     var senderDisplayName = !string.IsNullOrWhiteSpace(message.Sender.FullName) ? message.Sender.FullName : message.Sender.UserName;
-                                    <div class="sender-name">@senderDisplayName</div>
+                                    <div class="sender-name" data-user-name-id="@message.SenderId">@senderDisplayName</div>
                                 }
                                 
                                 <div class="message-content">
@@ -236,7 +285,29 @@
                                     }
                                     else if (message.Type == WebChat.Models.MessageType.Image)
                                     {
-                                        <img src="@message.FileUrl" class="chat-img img-fluid" alt="image" onclick="zoomImage(this.src)" />
+                                        var imageUrl = BuildMediaUrl(message.FileUrl, message.Id);
+                                        <img src="@imageUrl" class="chat-img img-fluid" alt="image" onclick="zoomImage(this.src)" />
+                                        @if (!string.IsNullOrWhiteSpace(message.Content))
+                                        {
+                                            <div class="media-caption">@message.Content</div>
+                                        }
+                                    }
+                                    else if (message.Type == WebChat.Models.MessageType.Video)
+                                    {
+                                        var videoUrl = BuildMediaUrl(message.FileUrl, message.Id);
+                                        <div class="chat-video-shell" data-video-shell>
+                                            <button type="button"
+                                                    class="chat-video-placeholder"
+                                                    data-video-src="@videoUrl"
+                                                    onclick="loadInlineVideo(this)">
+                                                <span class="material-symbols-outlined">play_circle</span>
+                                                <span>Xem video</span>
+                                            </button>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(message.Content))
+                                        {
+                                            <div class="media-caption">@message.Content</div>
+                                        }
                                     }
                                     else if (message.Type == WebChat.Models.MessageType.File)
                                     {
@@ -267,6 +338,7 @@
                         <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"></div>
                     </div>
                 </div>
+                <div id="mediaPreviewContainer" class="media-preview-container d-none"></div>
 
                 <div class="input-wrapper">
                     <button class="input-action-btn" type="button" id="btnAttachFile" title="Đính kèm tệp">
@@ -274,6 +346,9 @@
                     </button>
                     <button class="input-action-btn" type="button" id="btnAttachImage" title="Đính kèm ảnh">
                         <span class="material-symbols-outlined">image</span>
+                    </button>
+                    <button class="input-action-btn" type="button" id="btnAttachVideo" title="Đính kèm video">
+                        <span class="material-symbols-outlined">videocam</span>
                     </button>
                     <button class="input-action-btn" type="button" id="btnEmoji" title="Biểu cảm">
                         <span class="material-symbols-outlined">mood</span>
@@ -291,12 +366,13 @@
 
                 <div class="composer-meta">
                     <span>Enter để gửi</span>
-                    <span>Kéo thả chưa hỗ trợ, dùng nút đính kèm</span>
+                    <span>Ảnh/video có thể thêm chú thích trước khi gửi</span>
                 </div>
                 
-                <!-- Hidden inputs for file/image -->
+                <!-- Hidden inputs for file/image/video -->
                 <input type="file" id="fileInput" class="d-none" />
                 <input type="file" id="imageInput" accept="image/*" class="d-none" />
+                <input type="file" id="videoInput" accept="video/*" class="d-none" />
             </div>
             
             <input type="hidden" id="currentChatId" value="@Model.ActiveChat.Id" />
@@ -315,9 +391,49 @@
                 </button>
             </div>
         }
+        </div>
+
+        @if (Model.ActiveChat?.Type == WebChat.Models.ChatType.Group)
+        {
+            <aside class="chat-members-panel">
+                <div class="chat-members-header">
+                    <p class="chat-members-eyebrow">Thành viên</p>
+                    <h6 class="chat-members-title">@Model.ActiveChat.ChatUsers.Count người tham gia</h6>
+                </div>
+                <div class="chat-members-list">
+                    @foreach (var member in Model.ActiveChat.ChatUsers
+                       .OrderByDescending(cu => cu.UserId == Model.CurrentUser.Id)
+                       .ThenBy(cu => !string.IsNullOrWhiteSpace(cu.User.FullName) ? cu.User.FullName : cu.User.UserName))
+                    {
+                        var displayName = !string.IsNullOrWhiteSpace(member.User.FullName) ? member.User.FullName : member.User.UserName;
+                        var isCurrentUser = member.UserId == Model.CurrentUser.Id;
+                        var isOnline = WebChat.Hubs.ChatHub.IsUserOnline(member.UserId);
+                        <div class="chat-member-card">
+                            <div class="chat-member-avatar" title="@displayName">
+                                @GetInitials(displayName)
+                            </div>
+                            <div class="chat-member-info">
+                                <div class="chat-member-name-row">
+                                    <span class="chat-member-name" data-user-name-id="@member.UserId">@displayName</span>
+                                    @if (member.Role == WebChat.Models.UserRole.Admin)
+                                    {
+                                        <span class="chat-member-role">Admin</span>
+                                    }
+                                </div>
+                                <div class="chat-member-meta">
+                                    <span class="status-dot @(isOnline ? "online" : "offline")"></span>
+                                    <span>@(isCurrentUser ? "Bạn" : (isOnline ? "Đang hoạt động" : "Ngoại tuyến"))</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </aside>
+        }
     </div>
 </div>
 <input type="hidden" id="currentUserId" value="@Model.CurrentUser.Id" />
+<input type="hidden" id="serverInstanceToken" value="@WebChat.Infrastructure.AppRuntime.InstanceToken" />
 
 <!-- Image Lightbox Modal -->
 <div id="imageLightbox" class="lightbox-modal" onclick="closeLightbox()">
@@ -326,6 +442,7 @@
         <img class="lightbox-content" id="lightboxImage" alt="Hình ảnh xem trước">
     </div>
 </div>
+
 
 <!-- New Chat Modal -->
 <div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
@@ -338,8 +455,30 @@
                 </div>
                 <div class="modal-body py-4">
                     <div class="mb-3">
-                        <label for="targetEmail" class="form-label font-weight-bold text-muted" style="font-size: 0.85rem;">Email người cần chat:</label>
-                        <input type="email" class="form-control" id="targetEmail" name="TargetEmail" required placeholder="name@example.com" style="border-radius: 12px; padding: 12px 16px;">
+                        <label for="chatMode" class="form-label font-weight-bold text-muted" style="font-size: 0.85rem;">Loại cuộc trò chuyện:</label>
+                        <select class="form-select" id="chatMode" name="ChatMode" style="border-radius: 12px; padding: 12px 16px;">
+                            <option value="private">Chat riêng</option>
+                            <option value="group">Tạo nhóm</option>
+                        </select>
+                    </div>
+
+                    <div id="privateChatFields">
+                        <div class="mb-3">
+                            <label for="targetEmail" class="form-label font-weight-bold text-muted" style="font-size: 0.85rem;">Email người cần chat:</label>
+                            <input type="email" class="form-control" id="targetEmail" name="TargetEmail" placeholder="name@example.com" style="border-radius: 12px; padding: 12px 16px;">
+                        </div>
+                    </div>
+
+                    <div id="groupChatFields" class="d-none">
+                        <div class="mb-3">
+                            <label for="groupName" class="form-label font-weight-bold text-muted" style="font-size: 0.85rem;">Tên nhóm:</label>
+                            <input type="text" class="form-control" id="groupName" name="GroupName" placeholder="Ví dụ: PRN222 Team" style="border-radius: 12px; padding: 12px 16px;">
+                        </div>
+                        <div class="mb-0">
+                            <label for="groupMemberEmails" class="form-label font-weight-bold text-muted" style="font-size: 0.85rem;">Email thành viên:</label>
+                            <textarea class="form-control" id="groupMemberEmails" name="GroupMemberEmails" rows="4" placeholder="name1@example.com, name2@example.com" style="border-radius: 12px; padding: 12px 16px;"></textarea>
+                            <div class="form-text">Phân tách bằng dấu phẩy, chấm phẩy hoặc xuống dòng.</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top-0 pt-0">
