@@ -67,14 +67,34 @@ if (chatIdInput) {
         scrollToBottom();
     });
 
-    connection.start().then(function () {
-        connection.invoke("JoinChat", currentChatId).catch(function (err) {
-            return console.error(err.toString());
+    // Emoji Picker Logic
+    const btnEmoji = document.getElementById("btnEmoji");
+    const emojiPicker = document.getElementById("emojiPicker");
+    const emojis = ["😀", "😂", "🥰", "😎", "😭", "😡", "👍", "👎", "❤️", "🔥", "🎉", "👀", "🤔", "👏", "🙌", "✨", "💯", "🙏"];
+    
+    if (emojiPicker && btnEmoji) {
+        emojis.forEach(emoji => {
+            const span = document.createElement("span");
+            span.textContent = emoji;
+            span.style.userSelect = "none";
+            span.onclick = () => {
+                messageInput.value += emoji;
+                emojiPicker.classList.add("d-none");
+                messageInput.focus();
+            };
+            emojiPicker.appendChild(span);
         });
-        scrollToBottom();
-    }).catch(function (err) {
-        return console.error(err.toString());
-    });
+
+        btnEmoji.addEventListener("click", () => {
+            emojiPicker.classList.toggle("d-none");
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!btnEmoji.contains(e.target) && !emojiPicker.contains(e.target)) {
+                emojiPicker.classList.add("d-none");
+            }
+        });
+    }
 
     // Send Text
     btnSend.addEventListener("click", function (event) {
@@ -144,3 +164,20 @@ if (chatIdInput) {
         xhr.send(formData);
     }
 }
+
+// Global Connection Start & Events
+connection.on("NewChatCreated", function (chatId, chatName) {
+    // When a new chat is created targeting this user, reload to update the chat list
+    window.location.reload();
+});
+
+connection.start().then(function () {
+    if (chatIdInput && currentChatId) {
+        connection.invoke("JoinChat", currentChatId).catch(function (err) {
+            return console.error(err.toString());
+        });
+        scrollToBottom();
+    }
+}).catch(function (err) {
+    return console.error(err.toString());
+});

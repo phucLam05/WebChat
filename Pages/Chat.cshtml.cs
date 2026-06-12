@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using WebChat.Data;
+using WebChat.Hubs;
 using WebChat.Models;
 
 namespace WebChat.Pages
@@ -12,10 +14,12 @@ namespace WebChat.Pages
     public class ChatModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly IHubContext<ChatHub> _hubContext;
 
-        public ChatModel(ApplicationDbContext context)
+        public ChatModel(ApplicationDbContext context, IHubContext<ChatHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         public ApplicationUser CurrentUser { get; set; } = null!;
@@ -99,6 +103,8 @@ namespace WebChat.Pages
             _context.ChatUsers.Add(new ChatUser { ChatId = newChat.Id, UserId = userId, Role = UserRole.Admin });
             _context.ChatUsers.Add(new ChatUser { ChatId = newChat.Id, UserId = targetUser.Id, Role = UserRole.Member });
             await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.User(targetUser.Id).SendAsync("NewChatCreated", newChat.Id, User.Identity?.Name);
 
             return RedirectToPage("/Chat", new { chatId = newChat.Id });
         }
