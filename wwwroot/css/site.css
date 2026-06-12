@@ -1,31 +1,546 @@
-html {
-  font-size: 14px;
+:root {
+    --bg-surface: #f4f7fb;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-container: #dbeafe;
+    --on-primary-container: #1e3a8a;
+    --on-surface: #0f172a;
+    --on-surface-variant: #64748b;
+    --surface-variant: #eef2f7;
+    --border-color: #d9e2ec;
+    --bg-surface-container: #eaf0f6;
+    --bg-surface-container-low: #f6f9fc;
+    --bg-surface-container-lowest: #ffffff;
+    --user-msg-gradient: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+    --tertiary-container: #dff4ff;
+    --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    --auth-card-bg: 255, 255, 255;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-surface: #0b1220;
+        --primary: #60a5fa;
+        --primary-hover: #3b82f6;
+        --primary-container: #1d4ed8;
+        --on-primary-container: #dbeafe;
+        --on-surface: #e5eef8;
+        --on-surface-variant: #94a3b8;
+        --surface-variant: #162033;
+        --border-color: #25324a;
+        --bg-surface-container: #111a2b;
+        --bg-surface-container-low: #0d1524;
+        --bg-surface-container-lowest: #111827;
+        --user-msg-gradient: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+        --tertiary-container: #0f2742;
+        --auth-card-bg: 17, 24, 39;
+    }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    background:
+        radial-gradient(circle at top, rgba(37, 99, 235, 0.08), transparent 35%),
+        var(--bg-surface);
+    color: var(--on-surface);
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
 }
 
-body {
-  margin-bottom: 60px;
+::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+::-webkit-scrollbar-thumb:hover {
+    background: var(--on-surface-variant);
 }
+
+.btn:focus, 
+.btn:active:focus, 
+.btn-link.nav-link:focus, 
+.form-control:focus, 
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--primary-container);
+    border-color: var(--primary);
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+/* ==========================================================================
+   Non-chat Views Styling (Auth, Identity, Manage Account Pages)
+   ========================================================================== */
+
+body.auth-page main {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface-container) 100%);
+    padding: 40px 20px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+body.auth-page main h1 {
+    font-size: 1.6rem;
+    font-weight: 900;
+    text-align: center;
+    color: var(--primary);
+    margin-bottom: 24px;
+    letter-spacing: -0.5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Add custom bubble logo before h1 */
+body.auth-page main h1::before {
+    content: "bubble_chart";
+    font-family: 'Material Symbols Outlined';
+    font-size: 2.8rem;
+    font-variation-settings: 'FILL' 1;
+    color: var(--primary);
+}
+
+body.auth-page main h2 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--on-surface-variant);
+    text-align: center;
+    margin-bottom: 24px;
+    line-height: 1.4;
+}
+
+body.auth-page main hr {
+    display: none;
+}
+
+body.auth-page main form {
+    background: rgba(var(--auth-card-bg), 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    margin: 0 auto;
+}
+
+/* Override default Bootstrap grids for Auth forms */
+body.auth-page main .row {
+    margin: 0;
+    width: 100%;
+    justify-content: center;
+}
+
+body.auth-page main .col-md-4,
+body.auth-page main .col-lg-4,
+body.auth-page main .col-md-6-offset-2 {
+    display: none !important; /* Hide external logins */
+}
+
+body.auth-page main .col-md-4:first-child,
+body.auth-page main .col-lg-6 {
+    width: 100% !important;
+    max-width: 450px !important;
+    flex: 0 0 100% !important;
+    padding: 0;
+}
+
+/* Custom form components styling */
+.form-floating {
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.form-floating > .form-control {
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: rgba(var(--auth-card-bg), 0.5);
+    color: var(--on-surface);
+    padding: 1rem 0.95rem;
+    height: 58px;
+    font-size: 0.95rem;
+}
+
+.form-floating > .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-container);
+    background-color: var(--bg-surface-container-lowest);
+    color: var(--on-surface);
+}
+
+.form-floating > label {
+    padding: 1rem 0.95rem;
+    color: var(--on-surface-variant);
+    opacity: 0.8;
+}
+
+/* Buttons */
+body.auth-page main .btn-primary {
+    background: var(--user-msg-gradient) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 12px 24px !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    width: 100%;
+    margin-top: 8px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25) !important;
+    transition: all 0.2s ease !important;
+}
+
+body.auth-page main .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35) !important;
+}
+
+body.auth-page main .btn-primary:active {
+    transform: translateY(1px);
+}
+
+/* Form Helper Links (stacked beautifully under form) */
+body.auth-page main form p {
+    margin: 10px 0 0 0;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+body.auth-page main form a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s ease;
+}
+
+body.auth-page main form a:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Validation Styling */
+.text-danger {
+    color: #ef4444 !important;
+    font-size: 0.775rem;
+    font-weight: 500;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+/* Checkbox styling */
+.checkbox {
+    margin-bottom: 20px;
+}
+
+.checkbox label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--on-surface-variant);
+    cursor: pointer;
+}
+
+.form-check-input {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 4px;
+    border-color: var(--border-color);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Header/Nav on auth pages (Hide since it clutters the UI) */
+body.auth-page header,
+body.manage-page header {
+    display: none !important;
+}
+
+/* ==========================================================================
+   Account Settings Management Dashboard Styling (body.manage-page)
+   ========================================================================== */
+
+body.manage-page main {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface-container) 100%);
+    padding: 40px 20px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+body.manage-page main h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-align: center;
+    color: var(--on-surface);
+    margin-bottom: 24px;
+    letter-spacing: -0.5px;
+}
+
+/* Glassmorphism Container Card for Settings Page */
+body.manage-page main > div:has(.row) {
+    background: rgba(var(--auth-card-bg), 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 36px;
+    width: 100%;
+    max-width: 900px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    margin: 0 auto;
+}
+
+body.manage-page main h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--on-surface);
+    margin-bottom: 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+}
+
+/* Settings Menu Pills */
+body.manage-page .nav-pills {
+    gap: 6px;
+    border: none !important;
+}
+
+body.manage-page .nav-pills .nav-link {
+    color: var(--on-surface-variant) !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 12px;
+    padding: 12px 18px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    background-color: transparent;
+    text-align: left;
+}
+
+body.manage-page .nav-pills .nav-link:hover {
+    background-color: var(--surface-variant);
+    color: var(--primary) !important;
+}
+
+body.manage-page .nav-pills .nav-link.active {
+    background: var(--user-msg-gradient) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+/* Form inputs & floating labels styling */
+body.manage-page .form-control {
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: rgba(var(--auth-card-bg), 0.5);
+    color: var(--on-surface);
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    height: auto;
+    transition: all 0.2s ease;
+}
+
+body.manage-page .form-control:focus {
+    border-color: var(--primary);
+    background-color: var(--bg-surface-container-lowest);
+    color: var(--on-surface);
+    box-shadow: 0 0 0 4px var(--primary-container);
+}
+
+body.manage-page .form-control:disabled,
+body.manage-page .form-control[readonly] {
+    background-color: rgba(var(--auth-card-bg), 0.25) !important;
+    color: var(--on-surface-variant);
+    border-color: var(--border-color);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+body.manage-page label.form-label,
+body.manage-page label:not(.form-check-label) {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--on-surface-variant);
+    margin-bottom: 6px;
+}
+
+body.manage-page .form-floating > label {
+    padding: 1rem 0.95rem;
+    color: var(--on-surface-variant);
+    opacity: 0.75;
+}
+
+body.manage-page .form-floating > .form-control:focus ~ label,
+body.manage-page .form-floating > .form-control:not(:placeholder-shown) ~ label {
+    color: var(--primary);
+    opacity: 0.9;
+}
+
+/* Buttons */
+body.manage-page .btn-primary {
+    background: var(--user-msg-gradient) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 12px 28px !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+    transition: all 0.2s ease !important;
+    color: #ffffff !important;
+    width: auto !important;
+    min-width: 140px;
+    margin-top: 12px;
+}
+
+body.manage-page .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3) !important;
+}
+
+body.manage-page .btn-primary:active {
+    transform: translateY(1px);
+}
+
+/* Alerts */
+body.manage-page .alert {
+    border-radius: 14px;
+    border: none;
+    padding: 14px 20px;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+    font-weight: 500;
+}
+
+body.manage-page .alert-success {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+body.manage-page .alert-danger {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ==========================================================================
+   Account Settings Iframe Overrides (body.manage-page.in-iframe)
+   ========================================================================== */
+body.in-iframe {
+    background: transparent !important;
+    overflow-x: hidden !important;
+}
+
+body.in-iframe .container-fluid {
+    height: 100% !important;
+    min-height: unset !important;
+    overflow: hidden !important;
+}
+
+body.manage-page.in-iframe main {
+    min-height: unset !important;
+    height: 100% !important;
+    display: block !important;
+    padding: 0 !important;
+    background: transparent !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+body.manage-page.in-iframe main h1 {
+    display: none !important; /* Hide "Manage your account" header since modal has header */
+}
+
+body.manage-page.in-iframe main h2 {
+    display: none !important; /* Hide "Change your account settings" header */
+}
+
+body.manage-page.in-iframe main hr {
+    display: none !important; /* Hide divider line */
+}
+
+/* Strip cards, backgrounds, borders, and paddings of all wrapper containers inside main */
+body.manage-page.in-iframe main,
+body.manage-page.in-iframe main div,
+body.manage-page.in-iframe main section {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Ensure padding on the outer container */
+body.manage-page.in-iframe main > div {
+    padding: 15px !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+
+/* Force layout row (containing nav-pills) to be side-by-side */
+body.manage-page.in-iframe .row:has(.nav-pills) {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    margin-right: -10px !important;
+    margin-left: -10px !important;
+    width: 100% !important;
+}
+
+/* Style the sidebar menu column (first column) */
+body.manage-page.in-iframe .row:has(.nav-pills) > .col-md-3,
+body.manage-page.in-iframe .row:has(.nav-pills) > *:first-child {
+    flex: 0 0 220px !important;
+    width: 220px !important;
+    max-width: 220px !important;
+    padding-right: 10px !important;
+    padding-left: 10px !important;
+}
+
+/* Style the main content column (second column) */
+body.manage-page.in-iframe .row:has(.nav-pills) > .col-md-9,
+body.manage-page.in-iframe .row:has(.nav-pills) > *:nth-child(2) {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    padding-right: 10px !important;
+    padding-left: 15px !important;
+}
+

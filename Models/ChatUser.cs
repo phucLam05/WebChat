@@ -9,6 +9,8 @@ namespace WebChat.Models
         public ApplicationUser User { get; set; } = null!;
         
         public UserRole Role { get; set; } // Admin, Member
+        
+        public DateTime LastReadAt { get; set; } = DateTime.UtcNow;
     }
 
     public enum UserRole

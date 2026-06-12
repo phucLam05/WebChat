@@ -11,7 +11,7 @@ namespace WebChat.Pages
             {
                 return RedirectToPage("/Chat");
             }
-            return RedirectToPage("/Identity/Account/Login");
+            return RedirectToPage("/Account/Login", new { area = "Identity" });
         }
     }
 }

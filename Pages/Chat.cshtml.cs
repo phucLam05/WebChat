@@ -34,12 +34,17 @@ namespace WebChat.Pages
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null) return RedirectToPage("/Index");
 
-            CurrentUser = await _context.Users.FindAsync(userId);
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return RedirectToPage("/Index");
+            CurrentUser = user;
 
             // Get all chats user belongs to
-            Chats = await _context.ChatUsers
-                .Where(cu => cu.UserId == userId)
-                .Select(cu => cu.Chat)
+            Chats = await _context.Chats
+                .Where(c => c.ChatUsers.Any(cu => cu.UserId == userId))
+                .Include(c => c.ChatUsers)
+                    .ThenInclude(cu => cu.User)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.Sender)
                 .ToListAsync();
 
             if (chatId.HasValue)
@@ -48,6 +53,16 @@ namespace WebChat.Pages
                     .Include(c => c.Messages).ThenInclude(m => m.Sender)
                     .Include(c => c.ChatUsers).ThenInclude(cu => cu.User)
                     .FirstOrDefaultAsync(c => c.Id == chatId.Value);
+
+                if (ActiveChat != null)
+                {
+                    var currentUserChatUser = ActiveChat.ChatUsers.FirstOrDefault(cu => cu.UserId == userId);
+                    if (currentUserChatUser != null)
+                    {
+                        currentUserChatUser.LastReadAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+                }
             }
 
             return Page();
