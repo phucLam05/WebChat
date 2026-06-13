@@ -1,55 +1,55 @@
 # WebChat
 
-WebChat la ung dung chat realtime xay dung bang ASP.NET Core Razor Pages, SignalR, ASP.NET Core Identity va Entity Framework Core voi PostgreSQL.
+WebChat is a real-time chat application built with ASP.NET Core Razor Pages, SignalR, ASP.NET Core Identity, Entity Framework Core, and PostgreSQL.
 
-## Cong nghe su dung
+## Tech Stack
 
 - ASP.NET Core Razor Pages (`net10.0`)
-- SignalR cho realtime messaging
-- ASP.NET Core Identity cho dang nhap/dang ky
+- SignalR for real-time messaging
+- ASP.NET Core Identity for authentication
 - Entity Framework Core
 - PostgreSQL
 
-## Cau truc chinh
+## Project Structure
 
-- `Pages/`: cac trang nghiep vu chinh cua ung dung, hien tai chu yeu la man hinh chat
-- `Areas/Identity/Pages/`: cac trang dang nhap, dang ky, quan ly tai khoan
-- `Hubs/`: SignalR hub cho chat realtime
+- `Pages/`: main application pages, currently focused on the chat UI
+- `Areas/Identity/Pages/`: login, register, and account management pages
+- `Hubs/`: SignalR hub for real-time chat
 - `Data/`: `ApplicationDbContext`
-- `Models/`: entity nhu `Chat`, `ChatUser`, `Message`, `ApplicationUser`
-- `Controllers/FilesController.cs`: upload va phuc vu file media
-- `Infrastructure/`: cac class phu tro runtime
-- `wwwroot/`: CSS, JavaScript, thu muc upload va static assets
+- `Models/`: entities such as `Chat`, `ChatUser`, `Message`, and `ApplicationUser`
+- `Controllers/FilesController.cs`: file upload and media serving
+- `Infrastructure/`: runtime helper classes
+- `wwwroot/`: CSS, JavaScript, uploads, and static assets
 
-## Tinh nang hien tai
+## Current Features
 
-- Dang ky, dang nhap bang Identity
-- Tao chat rieng theo email
-- Tao nhom chat
-- Gui tin nhan text, emoji
-- Gui file, anh, video
-- Hien thi unread theo `LastReadAt`
-- Theo doi trang thai online/offline theo ket noi SignalR
-- Cap nhat ten hien thi realtime sau khi sua profile
+- User registration and login with Identity
+- Private chat creation by email
+- Group chat creation
+- Text and emoji messaging
+- File, image, and video sharing
+- Unread tracking based on `LastReadAt`
+- Online/offline presence tracking through SignalR connections
+- Real-time display name updates after profile changes
 
-## Yeu cau
+## Requirements
 
 - .NET SDK 10
 - PostgreSQL
 
-## Cau hinh
+## Configuration
 
-Project doc connection string `DefaultConnection`.
+The application reads the database connection string from `DefaultConnection`.
 
-File production/default:
+Default configuration file:
 
 `appsettings.json`
 
-File development mau:
+Development configuration sample:
 
 `appsettings.Development.json`
 
-Vi du:
+Example:
 
 ```json
 {
@@ -59,47 +59,47 @@ Vi du:
 }
 ```
 
-Ban hay thay `your_password_here` bang mat khau PostgreSQL tren may cua ban.
+Replace `your_password_here` with your local PostgreSQL password.
 
-## Cach chay project
+## How to Run
 
-1. Khoi tao database PostgreSQL.
-2. Cap nhat connection string trong `appsettings.json` hoac `appsettings.Development.json`.
-3. Chay migration:
+1. Create a PostgreSQL database.
+2. Update the connection string in `appsettings.json` or `appsettings.Development.json`.
+3. Apply the migrations:
 
 ```bash
 dotnet ef database update
 ```
 
-4. Chay ung dung:
+4. Run the application:
 
 ```bash
 dotnet run
 ```
 
-5. Mo trinh duyet theo URL ma ASP.NET Core in ra trong terminal.
+5. Open the URL printed by ASP.NET Core in the terminal.
 
-## Ghi chu ve thu muc Pages va Areas
+## Why Both `Pages` and `Areas` Exist
 
-- `Pages/` dung cho cac trang chinh cua ung dung nhu `/Chat`
-- `Areas/Identity/Pages/` dung cho module xac thuc nhu `/Identity/Account/Login`
+- `Pages/` contains the main application pages such as `/Chat`
+- `Areas/Identity/Pages/` contains the authentication module such as `/Identity/Account/Login`
 
-Day la cach to chuc dung va pho bien trong ASP.NET Core Razor Pages khi dung Identity.
+This is a common and correct structure for ASP.NET Core Razor Pages projects that use Identity.
 
 ## Media upload
 
-- File duoc upload qua `FilesController`
-- Gioi han cau hinh hien tai la `3GB`
-- File duoc luu trong `wwwroot/uploads`
+- Files are uploaded through `FilesController`
+- The current configured upload limit is `3GB`
+- Uploaded files are stored in `wwwroot/uploads`
 
-## Mot so file quan trong
+## Important Files
 
-- `Program.cs`: cau hinh DI, EF Core, Identity, SignalR va middleware
-- `Hubs/ChatHub.cs`: xu ly tham gia phong, gui tin nhan, cap nhat da doc
-- `Pages/Chat.cshtml` va `Pages/Chat.cshtml.cs`: UI chat va logic load/create chat
-- `wwwroot/js/chat.js`: logic client-side cho SignalR, upload va render message
+- `Program.cs`: configures DI, EF Core, Identity, SignalR, and middleware
+- `Hubs/ChatHub.cs`: handles room joining, message sending, and read status updates
+- `Pages/Chat.cshtml` and `Pages/Chat.cshtml.cs`: chat UI and page logic
+- `wwwroot/js/chat.js`: client-side SignalR, upload, and message rendering logic
 
-## Lenh huu ich
+## Useful Commands
 
 ```bash
 dotnet restore
